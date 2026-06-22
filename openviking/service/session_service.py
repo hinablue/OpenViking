@@ -6,6 +6,7 @@ Session Service for OpenViking.
 Provides session management operations: session, sessions, add_message, commit, delete.
 """
 
+import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from openviking.core.namespace import canonical_session_uri
@@ -32,6 +33,8 @@ if TYPE_CHECKING:
 
 class SessionService:
     """Session management service."""
+
+    _SESSION_ID_TIMESTAMP_RE = re.compile(r"(\d{8})_(\d{6})")
 
     def __init__(
         self,
@@ -94,6 +97,22 @@ class SessionService:
                 status,
                 exc_info=True,
             )
+
+    @classmethod
+    def _session_sort_key(cls, session_info: Dict[str, Any]) -> tuple[bool, str, str]:
+        """Sort sessions newest-first by timestamp embedded in session_id.
+
+        Session IDs are usually generated with a ``YYYYMMDD_HHMMSS`` prefix, so
+        we can derive a stable reverse-chronological order without depending on
+        filesystem listing order. IDs without that timestamp pattern sort after
+        timestamped sessions and then fall back to descending ``session_id``.
+        """
+        session_id = str(session_info.get("session_id") or "")
+        match = cls._SESSION_ID_TIMESTAMP_RE.search(session_id)
+        timestamp_key = ""
+        if match:
+            timestamp_key = f"{match.group(1)}_{match.group(2)}"
+        return (bool(match), timestamp_key, session_id)
 
     def session(
         self,
@@ -220,7 +239,11 @@ class SessionService:
                 }
         except Exception:
             logger.debug("Failed to list legacy sessions", exc_info=True)
-        return list(sessions_by_id.values())
+        return sorted(
+            sessions_by_id.values(),
+            key=self._session_sort_key,
+            reverse=False,
+        )
 
     async def delete(self, session_id: str, ctx: RequestContext) -> bool:
         """Delete a session.
