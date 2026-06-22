@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { CompassIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,7 +8,6 @@ import { useSessionTitles } from '#/lib/sessions/use-session-titles'
 import { MessageList } from './message-list'
 import { Composer } from './composer'
 
-const PixelBlast = lazy(() => import('#/components/ui/pixel-blast'))
 const PRODUCT_NAME = 'OpenViking'
 
 interface ThreadProps {
@@ -60,38 +59,10 @@ export function Thread({ sessionId }: ThreadProps) {
     chat.streamingParts,
   ])
 
-  const [showBackground, setShowBackground] = useState(false)
-
-  useEffect(() => {
-    const id =
-      'requestIdleCallback' in window
-        ? window.requestIdleCallback(() => setShowBackground(true))
-        : globalThis.setTimeout(() => setShowBackground(true), 200)
-    return () => {
-      if ('requestIdleCallback' in window)
-        window.cancelIdleCallback(id as number)
-      else clearTimeout(id)
-    }
-  }, [])
-
   const isEmpty = chat.messages.length === 0 && !isStreaming
 
   return (
-    <div className="relative flex h-full flex-col">
-      {/* PixelBlast background — deferred until idle */}
-      {showBackground && (
-        <div className="pointer-events-none absolute inset-0 z-0 opacity-40">
-          <Suspense fallback={null}>
-            <PixelBlast
-              color="#008bad"
-              pixelSize={1}
-              edgeFade={0.2}
-              speed={1.55}
-              enableRipples={false}
-            />
-          </Suspense>
-        </div>
-      )}
+    <div className="relative flex h-full flex-col bg-background">
 
       {title && (
         <div className="relative z-10 flex h-12 items-center border-b border-border/50 bg-background/95 px-6">

@@ -5,10 +5,25 @@ import {
   deleteSession,
   fetchBotHealth,
   fetchSession,
+  fetchSessionArchive,
   fetchSessionMessages,
   fetchSessions,
 } from './api'
 import type { Message } from './types/message'
+
+function isMessageArray(value: unknown): value is Message[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'id' in item &&
+        'role' in item &&
+        'parts' in item,
+    )
+  )
+}
 
 const SESSIONS_KEY = ['sessions'] as const
 const BOT_HEALTH_KEY = ['bot', 'health'] as const
@@ -39,11 +54,36 @@ export function useSession(sessionId: string | undefined) {
   })
 }
 
-/** Fetch message history for a session. */
+/** Fetch message history for a session.
+ *
+ * Fallback for archived sessions: when the live session has no pending messages
+ * but the session has commits, load the latest archive messages so Studio can
+ * still display historical sessions instead of showing an empty thread.
+ */
 export function useSessionMessages(sessionId: string | undefined) {
   return useQuery<Message[]>({
     queryKey: [...SESSIONS_KEY, sessionId, 'messages'],
-    queryFn: () => fetchSessionMessages(sessionId!),
+    queryFn: async () => {
+      const id = sessionId!
+      const liveMessages = await fetchSessionMessages(id)
+      if (liveMessages.length > 0) return liveMessages
+
+      const session = await fetchSession(id)
+      if (!session.commit_count || session.commit_count <= 0) return liveMessages
+
+      const archiveId = `archive_${String(session.commit_count).padStart(3, '0')}`
+      const archive = await fetchSessionArchive(id, archiveId)
+      if (
+        typeof archive === 'object' &&
+        archive !== null &&
+        'messages' in archive &&
+        isMessageArray(archive.messages)
+      ) {
+        return archive.messages
+      }
+
+      return liveMessages
+    },
     enabled: Boolean(sessionId),
     staleTime: 30_000, // cache for 30s to avoid flash on session switch
   })
