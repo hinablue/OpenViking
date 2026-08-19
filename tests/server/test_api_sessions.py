@@ -147,13 +147,27 @@ async def test_create_session(client: httpx.AsyncClient):
 
 
 async def test_list_sessions(client: httpx.AsyncClient):
-    # Create a session first
-    await client.post("/api/v1/sessions", json={})
+    session_ids = [
+        "20260601_105256_700727",
+        "migration_api_probe3_20260528_075547_b587ac9f",
+        "20260621_212455_fccfc8",
+        "f9ec6a98-f093-4d31-ab70-ffd6ab32f6f6",
+    ]
+    for session_id in session_ids:
+        resp = await client.post("/api/v1/sessions", json={"session_id": session_id})
+        assert resp.status_code == 200
+
     resp = await client.get("/api/v1/sessions")
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
     assert isinstance(body["result"], list)
+    assert [item["session_id"] for item in body["result"]] == [
+        "20260621_212455_fccfc8",
+        "20260601_105256_700727",
+        "migration_api_probe3_20260528_075547_b587ac9f",
+        "f9ec6a98-f093-4d31-ab70-ffd6ab32f6f6",
+    ]
 
 
 async def test_get_session(client: httpx.AsyncClient):
