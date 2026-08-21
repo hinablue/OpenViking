@@ -68,10 +68,9 @@ A semantically processed directory commonly looks like this:
 viking://resources/docs/auth/
 ├── .abstract.md          # L0, hidden directory sidecar
 ├── .overview.md          # L1, hidden directory sidecar
-├── .relations.json       # Relation data
-├── oauth.md              # L2
-├── jwt.md                # L2
-└── api-keys.md           # L2
+├── oauth.md              # L2, full content
+├── jwt.md                # L2, full content
+└── api-keys.md           # L2, full content
 ```
 
 Normal `ls` hides `.abstract.md` and `.overview.md`. The two files are not guaranteed to coexist, so callers should not assume every directory always has both sidecars.
@@ -147,7 +146,7 @@ API authentication guide covering OAuth 2.0, JWT tokens, and API keys.
 - `unsampled_entries`: direct entries not sampled, with `sampled + unsampled = total`.
 - `pending_child_changes`: known changed direct entries not yet reflected in the current body.
 
-When the direct-entry count exceeds `semantic.sidecar_sample_size` (32 by default), OpenViking uses deterministic, order-preserving stable sampling. Repeated refreshes of an unchanged tree choose the same sample, avoiding noisy body rewrites and Git diffs.
+When the direct-entry count exceeds `semantic.overview_sample_limit` (32 by default), OpenViking uses deterministic, order-preserving stable sampling. Repeated refreshes of an unchanged tree choose the same sample, avoiding noisy body rewrites and Git diffs.
 
 `pending_child_changes > 0` means the body is still readable but is known to lag behind lower-level changes. A successful parent refresh resets the value to 0 as part of the new coverage metadata.
 

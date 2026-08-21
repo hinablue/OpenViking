@@ -73,7 +73,7 @@ OpenViking 提供多种检索方法，包括简单的向量相似度搜索、带
 **目标解析说明**：
 - `target_uri` 为空时，非 ROOT 检索默认搜索当前用户根 `viking://user/{user}` 和公共 `viking://resources`。
 - 如需在文件系统和检索操作中把当前用户的 peer 集合过滤到某一个 peer，发送 `X-OpenViking-Actor-Peer: <peer_id>`，或用 SDK/CLI client 的 `actor_peer_id` 初始化。见 [多租户：Peer 集合过滤](../concepts/11-multi-tenant.md#peer-restricted-view)。
-- `viking://user/memories`、`viking://user/resources`、`viking://user/skills` 等当前用户短写 target URI 会按认证请求身份 canonicalize。
+- `viking://~/memories`、`viking://~/resources`、`viking://~/skills` 等家目录别名 target URI 会按认证请求身份展开为 canonical 路径。无 uid 的写法 `viking://user/memories`（以及 `resources`、`skills`、`peers`、`privacy`、`sessions` 的同类写法）会被拒绝，并提示改用 `viking://~/...`。
 
 **图片搜索说明**：
 - 图片查询会以图片向量作为 query，默认检索目标范围内的 L2 resource 叶子节点；结果不限于图片文件，图片与文本/图片资源的相似度由 multimodal embedding 模型决定。
@@ -104,7 +104,6 @@ class MatchedContext:
     category: str                    # 分类
     score: float                     # 相关性分数 (0-1)
     match_reason: str                # 匹配原因
-    relations: List[RelatedContext]  # 关联上下文
 ```
 
 #### 3. 使用示例
@@ -233,13 +232,13 @@ results = client.find(
 # 仅在用户记忆中搜索
 results = client.find(
     "preferences",
-    target_uri="viking://user/memories"
+    target_uri="viking://~/memories"
 )
 
 # 仅在当前用户资源中搜索
 results = client.find(
     "private docs",
-    target_uri="viking://user/resources"
+    target_uri="viking://~/resources"
 )
 
 # 检索时把 peer 集合过滤到一个 peer
@@ -253,7 +252,7 @@ peer_results = peer_client.find("invoice follow-up")
 # 仅在技能中搜索
 results = client.find(
     "web search",
-    target_uri="viking://user/skills"
+    target_uri="viking://~/skills"
 )
 
 # 在特定项目中搜索
@@ -337,7 +336,6 @@ openviking find "红色海报风格" --image ./poster.png --uri "viking://resour
                 "score": 0.12808319406977778,
                 "category": "",
                 "match_reason": "",
-                "relations": [],
                 "abstract": "This document is an API documentation reading plan that outlines the structure of subsequent API reference materials organized by functional module. Main sections or topics covered include resource management API, search API, file system operations, ses...",
                 "overview": null
             },
@@ -348,7 +346,6 @@ openviking find "红色海报风格" --image ./poster.png --uri "viking://resour
                 "score": 0.12054087276495282,
                 "category": "",
                 "match_reason": "",
-                "relations": [],
                 "abstract": "This directory contains structured API reference documentation for the OpenViking platform, compiling detailed HTTP endpoint specifications for core and extended platform capabilities. It covers functional modules including system health checks, semanti...",
                 "overview": null
             }
@@ -565,7 +562,6 @@ openviking search "similar poster" --image ./poster.png --uri "viking://resource
                 "score": 0.95,
                 "category": "",
                 "match_reason": "Context-aware match: OAuth login best practices",
-                "relations": [],
                 "abstract": "OAuth 2.0 best practices for login pages...",
                 "overview": "This guide covers OAuth 2.0 best practices including secure token handling, redirect URI validation, and state parameter usage..."
             }
@@ -1051,35 +1047,6 @@ curl -X GET "http://localhost:1933/api/v1/content/overview?uri=viking://resource
 
 # 步骤 3：读取文件结果的完整内容
 curl -X GET "http://localhost:1933/api/v1/content/read?uri=viking://resources/docs/auth.md" \
-    -H "X-API-Key: your-key"
-```
-
-### 获取关联资源
-
-**Python SDK**
-
-```python
-import openviking as ov
-
-client = ov.SyncHTTPClient(url="http://localhost:1933", api_key="your-key")
-client.initialize()
-
-results = client.find("OAuth implementation")
-
-for ctx in results.resources:
-    print(f"Found: {ctx.uri}")
-
-    # 获取关联资源
-    relations = client.relations(ctx.uri)
-    for rel in relations:
-        print(f"  Related: {rel['uri']} - {rel['reason']}")
-```
-
-**HTTP API**
-
-```bash
-# 获取资源的关联关系
-curl -X GET "http://localhost:1933/api/v1/relations?uri=viking://resources/docs/auth" \
     -H "X-API-Key: your-key"
 ```
 

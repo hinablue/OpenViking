@@ -144,7 +144,6 @@ Implemented:
 | Watch management | `ListWatches`, `GetWatch`, `UpdateWatch`, `DeleteWatch`, `TriggerWatch` |
 | Filesystem and content | `List`, `Tree`, `Stat`, `Attrs`, `Mkdir`, `Remove`, `Move`, `Read`, `Abstract`, `Overview`, `Write`, `SetTags`, `Reindex` |
 | Retrieval | `Find`, `Search`, `Grep`, `Glob` |
-| Relations | `Relations`, `Link`, `Unlink` |
 | Sessions and tasks | `CreateSession`, `ListSessions`, `GetSession`, `UpdateSessionConfig`, `SessionExists`, `GetSessionContext`, `GetSessionArchive`, `DeleteSession`, `AddMessage`, `BatchAddMessages`, `CommitSession`, `GetTask`, `ListTasks` |
 | Packs | `ExportOVPack`, `BackupOVPack`, `ImportOVPack`, `RestoreOVPack` |
 | System and observer | `Health`, `CheckConsistency`, `GetStatus`, `IsHealthy`, `QueueStatus`, `VikingDBStatus`, `ModelsStatus` |
@@ -171,8 +170,8 @@ _, err := client.AdminRegisterUserWithOptions(ctx, "acme", "alice", "user", &ope
     Seed: &seed,
     UserConfig: map[string]any{
 		"add_targets": map[string]any{
-			"resource_uri": "viking://user/resources/project-a",
-			"skill_uri":    "viking://user/skills",
+			"resource_uri": "viking://~/resources/project-a",
+			"skill_uri":    "viking://~/skills",
 		},
 	},
 })

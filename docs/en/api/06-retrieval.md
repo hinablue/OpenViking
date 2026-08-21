@@ -72,7 +72,7 @@ The `find()` method performs pure vector similarity search for simple query scen
 **Target resolution notes**:
 - With empty `target_uri`, non-ROOT retrieval searches the current user root (`viking://user/{user}`) and shared `viking://resources`.
 - To filter the current user's peer collection to one peer for filesystem and retrieval operations, send `X-OpenViking-Actor-Peer: <peer_id>` or construct the SDK/CLI client with `actor_peer_id`. See [Multi-Tenant: Peer Collection Filter](../concepts/11-multi-tenant.md#peer-restricted-view).
-- Current-user shorthand target URIs such as `viking://user/memories`, `viking://user/resources`, and `viking://user/skills` are canonicalized from the authenticated request identity.
+- Home-alias target URIs such as `viking://~/memories`, `viking://~/resources`, and `viking://~/skills` are expanded to the canonical path from the authenticated request identity. The uid-less spelling `viking://user/memories` (and the same shape for `resources`, `skills`, `peers`, `privacy`, `sessions`) is rejected with an error pointing at the `viking://~/...` form.
 
 **Image search notes**:
 - Image queries use the image vector as the query and search L2 resource leaf nodes in the target scope by default. Results are not limited to image files; multimodal embedding decides similarity between the query image and text/image resources.
@@ -103,7 +103,6 @@ class MatchedContext:
     category: str                    # Category
     score: float                     # Relevance score (0-1)
     match_reason: str                # Why this matched
-    relations: List[RelatedContext]  # Related contexts
 ```
 
 #### 3. Usage Examples
@@ -232,13 +231,13 @@ results = client.find(
 # Search only in user memories
 results = client.find(
     "preferences",
-    target_uri="viking://user/memories"
+    target_uri="viking://~/memories"
 )
 
 # Search only in current-user resources
 results = client.find(
     "private docs",
-    target_uri="viking://user/resources"
+    target_uri="viking://~/resources"
 )
 
 # Search with the peer collection filtered to one peer
@@ -252,7 +251,7 @@ peer_results = peer_client.find("invoice follow-up")
 # Search only in skills
 results = client.find(
     "web search",
-    target_uri="viking://user/skills"
+    target_uri="viking://~/skills"
 )
 
 # Search in specific project
@@ -336,7 +335,6 @@ openviking find "red poster style" --image ./poster.png --uri "viking://resource
                 "score": 0.12808319406977778,
                 "category": "",
                 "match_reason": "",
-                "relations": [],
                 "abstract": "This document is an API documentation reading plan that outlines the structure of subsequent API reference materials organized by functional module. Main sections or topics covered include resource management API, search API, file system operations, ses...",
                 "overview": null
             },
@@ -347,7 +345,6 @@ openviking find "red poster style" --image ./poster.png --uri "viking://resource
                 "score": 0.12054087276495282,
                 "category": "",
                 "match_reason": "",
-                "relations": [],
                 "abstract": "This directory contains structured API reference documentation for the OpenViking platform, compiling detailed HTTP endpoint specifications for core and extended platform capabilities. It covers functional modules including system health checks, semanti...",
                 "overview": null
             }
@@ -563,7 +560,6 @@ openviking search "similar poster" --image ./poster.png --uri "viking://resource
                 "score": 0.95,
                 "category": "",
                 "match_reason": "Context-aware match: OAuth login best practices",
-                "relations": [],
                 "abstract": "OAuth 2.0 best practices for login pages...",
                 "overview": "This guide covers OAuth 2.0 best practices including secure token handling, redirect URI validation, and state parameter usage..."
             }
@@ -1050,35 +1046,6 @@ curl -X GET "http://localhost:1933/api/v1/content/overview?uri=viking://resource
 
 # Step 3: Read full content for file result
 curl -X GET "http://localhost:1933/api/v1/content/read?uri=viking://resources/docs/auth.md" \
-    -H "X-API-Key: your-key"
-```
-
-### Get Related Resources
-
-**Python SDK**
-
-```python
-import openviking as ov
-
-client = ov.SyncHTTPClient(url="http://localhost:1933", api_key="your-key")
-client.initialize()
-
-results = client.find("OAuth implementation")
-
-for ctx in results.resources:
-    print(f"Found: {ctx.uri}")
-
-    # Get related resources
-    relations = client.relations(ctx.uri)
-    for rel in relations:
-        print(f"  Related: {rel['uri']} - {rel['reason']}")
-```
-
-**HTTP API**
-
-```bash
-# Get relations for resource
-curl -X GET "http://localhost:1933/api/v1/relations?uri=viking://resources/docs/auth" \
     -H "X-API-Key: your-key"
 ```
 
